@@ -1175,61 +1175,16 @@ function render() {
 }
 
 function renderProjectTiles() {
-  const w = document.createElement('div');
-  w.className = 'welcome';
-  w.innerHTML = '<h1>Your projects</h1><p>' + PROJECTS.length + ' projects across Cloudflare, Vercel, GitHub. Click a tile for details + actions.</p>';
-  els.chat.appendChild(w);
+  const container = document.createElement('div');
+  container.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;';
 
-  const wrap = document.createElement('div');
-  wrap.className = 'tiles-wrap';
+  const iframe = document.createElement('iframe');
+  iframe.src = 'https://falkor-projects.pgallivan.workers.dev/';
+  iframe.style.cssText = 'border:none;width:100%;flex:1;background:var(--bg2);';
+  iframe.allow = 'clipboard-write';
 
-  // Filter chips
-  const tags = ['all', ...new Set(PROJECTS.map(p => p.tag))];
-  const filter = document.createElement('div');
-  filter.className = 'tiles-filter';
-  tags.forEach(t => {
-    const chip = document.createElement('button');
-    chip.className = 'tile-chip' + (currentFilter === t ? ' active' : '');
-    chip.textContent = t === 'all' ? 'All (' + PROJECTS_EFF.length + ')' : t + ' (' + PROJECTS_EFF.filter(p => p.tag === t).length + ')';
-    chip.addEventListener('click', () => { currentFilter = t; saveFilter(t); render(); });
-    filter.appendChild(chip);
-  });
-  wrap.appendChild(filter);
-
-  const grid = document.createElement('div');
-  grid.className = 'tiles';
-  if (PROJECTS_EFF.length === 0) {
-    var empty = document.createElement('div');
-    empty.style.cssText = 'text-align:center;padding:40px 20px;color:var(--muted);font-size:14px';
-    empty.innerHTML = 'No projects yet. <button class="btn-primary" id="emptyAddBtn" style="margin-left:8px">+ Add your first project</button>';
-    wrap.appendChild(empty);
-    els.chat.appendChild(wrap);
-    setTimeout(function(){ var eab = document.getElementById('emptyAddBtn'); if (eab) eab.addEventListener('click', addProjectFlow); }, 0);
-    return;
-  }
-  var filtered = currentFilter === 'all' ? PROJECTS_EFF.slice() : PROJECTS_EFF.filter(function(p){ return p.tag === currentFilter; });
-  // Ranking sort
-  var sortMode = loadSort();
-  if (sortMode === 'alpha') filtered.sort(function(a,b){ return a.name.localeCompare(b.name); });
-  else if (sortMode === 'tag') filtered.sort(function(a,b){ return (a.tag||'').localeCompare(b.tag||'') || a.name.localeCompare(b.name); });
-  else if (sortMode === 'recent') filtered.sort(function(a,b){ return ((b._lastSeen||0) - (a._lastSeen||0)); });
-  filtered.forEach(p => {
-    const tile = document.createElement('div');
-    tile.className = 'tile';
-    tile.innerHTML =
-      '<div class="row"><div class="name">' + escapeHtml(p.name) + '</div><div class="tag">' + escapeHtml(p.tag) + '</div></div>' +
-      (p.url ? '<a class="url" href="' + p.url + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">' + escapeHtml(p.url) + '</a>' : '<span class="url" style="color:var(--muted);font-style:italic">no live URL</span>') +
-      '<div class="ctx">' + escapeHtml(p.context || '') + '</div>' +
-      '<div class="health"><span class="dot checking" data-pid-tile="' + p.id + '"></span><span data-pid-tile-label="' + p.id + '">checking…</span></div>';
-    tile.addEventListener('click', () => openProjectDetail(p.id));
-    grid.appendChild(tile);
-  });
-  wrap.appendChild(grid);
-  els.chat.appendChild(wrap);
-  var ss = document.getElementById('sortSelect');
-  if (ss) { ss.value = loadSort(); ss.addEventListener('change', function(){ saveSort(ss.value); render(); }); }
-  var apb = document.getElementById('addProjectBtn');
-  if (apb) apb.addEventListener('click', function(){ addProjectFlow(); });
+  container.appendChild(iframe);
+  els.chat.appendChild(container);
 }
 
 async function addProjectFlow() {
@@ -2146,4 +2101,4 @@ export default {
 
     return new Response('Not Found', { status: 404, headers: corsHeaders() });
   }
-};
+};                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
