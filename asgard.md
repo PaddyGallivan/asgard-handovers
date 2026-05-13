@@ -83,3 +83,26 @@ Account: a6f47c17811ee2f8b6caeb8f38768c20 | Zone luckdragon.io: ca610439808e918e
 - Add Anthropic tool_use to agentic loop (currently OpenAI only)
 - Resolve falkor-tools hollow routes or remove worker
 - CF token creation for Vectorize Edit + Zone DNS Edit
+
+## Session start protocol (updated 2026-05-13)
+D1 `project_state` table is now live and auto-syncing — query it first for session context.
+
+**Step 1 — D1 project state (primary context):**
+```sql
+SELECT current_state FROM project_state WHERE project_id='proj_asgard';
+-- Sport Portal: project_id='proj_017'
+-- Full project list: SELECT id, name, status FROM projects ORDER BY updated_at DESC
+```
+D1 asgard-prod: `b6275cb4-9c0f-4649-ae6a-f1c2e70e940f`
+
+**Step 2 — Live brief:** `https://asgard-tools.pgallivan.workers.dev/brief?pin=535554`
+
+**Step 3 — GitHub handover:** Read `SESSION-HANDOVER.md` + relevant project `.md` from `github.com/Luck-Dragon-Pty-Ltd/asgard-handovers`
+
+**Step 4 — Smoke test:** `/health` on asgard-ai, falkor-brain, falkor-workflows, falkor-ui
+
+**On wrap-up:**
+1. Overwrite project `.md` in asgard-handovers
+2. Prepend new block to `SESSION-HANDOVER.md`
+3. `UPSERT INTO project_state` with current JSON blob
+4. `INSERT INTO project_events` with session summary
