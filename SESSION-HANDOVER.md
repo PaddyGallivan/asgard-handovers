@@ -1,3 +1,40 @@
+## 2026-05-13 — Asgard Final Build: Full Capability Audit + Agent Loop Fix
+
+**Who:** Paddy
+**Project:** Asgard Final Build (project_hub row id=65, progress 65%)
+
+### Done
+- **Full smoke test** of ALL claimed capabilities — first honest end-to-end pass
+- **asgard-tools /brief FIXED** — endpoint was completely missing from worker code (only had /health + /admin/projects). Rebuilt v1.5.0→1.5.2 with live brief pulling weather, projects, fleet count.
+- **Falkor agentic loop FIXED** — get_worker_code and deploy_worker were calling asgard-ai itself (self-call 522 loop). Both now call CF API directly. deploy_worker now preserves ALL bindings (Vectorize/AI/D1) via versions API. Previously it was silently stripping them.
+- **VERIFIED LIVE** — Falkor read asgard-tools source, added /version route, committed to GitHub, deployed (4 iterations, tools: get_worker_code + github_write_file + deploy_worker). Confirmed working at https://asgard-tools.pgallivan.workers.dev/version
+- **falkor-brain AGENT_PIN standardised** — was set to unknown value, now 535554 everywhere (worker secret + vault)
+- **worker-source parser fixed** — now handles worker.js, index.js, and any .js module name
+- **longrangetipping.com.au** — NS propagated to Cloudflare, Vercel domains added (auto-verified). DNS records pending CF_DNS_TOKEN (token with Zone DNS Edit needed).
+- **Thor/Thunder rows** — status corrected from live/100% to archived/0% in project_hub (workers don't exist)
+
+### What actually passes live smoke tests
+asgard-ai /health ✅ | falkor-brain (vectorize+db+ai) ✅ | falkor-workflows ✅ | falkor-ui v9.26.0 ✅ | vault 69 keys ✅ | D1 28 dbs ✅ | KV 24 ns ✅ | R2 ✅ | Workers 152 ✅ | Vectorize describe/query ✅ | Projects list 54 ✅ | GitHub read+write ✅ | LLMs all 4 providers ✅ | Image gen ✅ | TTS ✅ | Weather ✅ | Brief ✅ | Calendar ❌ (API not enabled)
+
+### Key deployments this session
+- asgard-ai: 741488b3a3bd48259daf9ee82bb33158 (fixed agentic tool handlers + worker-source parser)
+- asgard-tools: deployed by Falkor itself (v1.5.2)
+- falkor-brain: 6f384a3c20f24d9098b322e3ba3dca72 (bindings restored, /ping added by Falkor)
+
+### Still pending (human action needed)
+1. Google Calendar API — OAuth re-consent at /admin/oauth-broader-url?pin=535554
+2. CF token with Zone DNS Edit — needed for longrangetipping.com.au DNS records
+3. CF token with Vectorize Edit — for Vectorize index CRUD
+4. schoolstaffhub.com.au — re-register (VentraIP order was rejected, ID verification needed)
+5. falkor.luckdragon.io → rebind to falkor-ui (currently routes to falkor-tools)
+
+### Resume steps
+1. `curl https://asgard-tools.pgallivan.workers.dev/brief?pin=535554`
+2. Check this file for latest session block
+3. Next: tool palette in PWA, agentic loop for Anthropic models, CF DNS token creation
+
+---
+
 ## 2026-05-13 session 2 — KBT outstanding items cleared
 
 ### Done
