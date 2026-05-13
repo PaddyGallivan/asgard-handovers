@@ -1,3 +1,52 @@
+## 2026-05-14 — Asgard: cross-chat revert loop fully resolved (asgard-ai + falkor-ui rolled forward)
+
+### What was actually wrong
+Earlier in this same session I closed the asgard-ai self-heal revert loop by pinning vault canonical to the *current live* asgard-ai (89867dc1, 238,256 B). On Paddy pushing back ("9.35 or something, won't update, console using asgard-ai"), I dug deeper and found:
+- The GitHub HEAD I'd just overwritten was 244,876 B (commit 560eee8c, 12:12Z) and contained the memory_v2 endpoint patches AND `/image/generate-and-store` — both MISSING from the live deploy at 12:48Z.
+- falkor-ui showed the same pattern: v9.34 features deployed at 13:47Z (userId fix, WS retry, productContext, capabilities grid, version footer), reverted at 13:58Z to v9.33 "clean", forward to v9.35 at 14:02Z (SW cache-bust), reverted again at 14:03Z to v9.33 ("causes reload loop"). Net result: feature work lost, PWA running stale.
+- "Console using asgard-ai" was the PWA's browser dev console showing 404s — v9.33 PWA code called `/image/generate-and-store` and other memory_v2-era endpoints that the regressed 238k asgard-ai didn't have.
+
+This was a cross-chat coordination failure, not a watchdog problem. The earlier handover I wrote was based on adopting the regressed version as truth — wrong call. Correcting that now.
+
+### What was done
+- Deployed asgard-ai from `/tmp/prev-gh.js` (= GH commit 560eee8c content, 244,876 B) via `PUT /workers/scripts/asgard-ai/content` (preserves all 35 bindings via inherit). New version_id `a80713d0-781b-443c-aa8f-d7822bc2f867`. `node --check` passed.
+- Deployed falkor-ui from GH commit 1813cccc1362 (v9.34 features with the SW navigate reload loop already removed by the same author at 13:56Z). New version_id `7be7cad1-2e09-4241-8d1a-3bd22e928f5a`. `node --check` passed.
+- Vault `ASGARD_AI_CANONICAL_DEPLOY_ID` = `a80713d0-781b-443c-aa8f-d7822bc2f867`.
+- Vault `ASGARD_AI_CANONICAL_SIZE` = `244876`.
+- KV `watchdog:asgard-ai:last-check` deleted so next cron tick re-evaluates.
+- GH `asgard-source/workers/asgard-ai.js` restored to 244k (commit `582afec9` — undoes my earlier downgrade sync `383c61d3`).
+- GH `asgard-source/workers/falkor-ui.js` restored to v9.34 features content (commit `087bd667` — undoes the v9.33 revert).
+- Probed: live `/health` returns 44 routes (was 43). `/image/generate-and-store` POST returns 401 (auth wall — route is alive). PWA HTML now contains `productContext` and `userId` references absent from v9.33.
+
+### Known cosmetic gotcha
+The author of the v9.34 falkor-ui commits never bumped the in-file `VERSION` constant from `'9.33.0'`. The PWA functionally has v9.34 features but the version footer will still display "9.33.0". One-line patch + redeploy will fix the display.
+
+### Resume steps
+1. `curl -s https://asgard-ai.luckdragon.io/health | jq '.routes | length'` → should be 44.
+2. `curl -s -X POST -H 'Content-Type: application/json' --data '{}' https://asgard-ai.luckdragon.io/image/generate-and-store` → should be 401 (auth wall — route exists).
+3. Open PWA, F12 → Network: confirm no 404s back to asgard-ai. Check Application → Service Workers: no reload loop.
+4. If you want the version footer to read 9.34.0: patch the `VERSION = '9.33.0'` constant in `asgard-source/workers/falkor-ui.js`, commit, redeploy via `/content`.
+
+### Procedure to keep changes from being reverted
+**asgard-ai** (watchdog-protected):
+1. Commit new bytes to `asgard-source/workers/asgard-ai.js` FIRST.
+2. Deploy to CF via `/content` endpoint (preserves bindings).
+3. PUT new `version_id` to vault `ASGARD_AI_CANONICAL_DEPLOY_ID` (and size to `ASGARD_AI_CANONICAL_SIZE`).
+
+**falkor-ui** (falkor-code self-heal, autoHeal: true):
+1. Commit new bytes to `asgard-source/workers/falkor-ui.js` FIRST.
+2. Deploy to CF via `/content` endpoint.
+
+Without step 1, falkor-code self-heal will redeploy the GH version on next 15-min tick, undoing your change. With step 1, the change sticks.
+
+### Key paths and secrets touched
+- GH: `Luck-Dragon-Pty-Ltd/asgard-source/workers/{asgard-ai,falkor-ui}.js`, `Luck-Dragon-Pty-Ltd/asgard-handovers/{asgard.md,SESSION-HANDOVER.md}`
+- CF: workers `asgard-ai`, `falkor-ui` (both via `/content` endpoint, bindings preserved)
+- Vault: `ASGARD_AI_CANONICAL_DEPLOY_ID`, `ASGARD_AI_CANONICAL_SIZE`
+- KV: `ASGARD_KV` `watchdog:asgard-ai:last-check` (deleted)
+- D1 `asgard-prod`: project_events row added
+
+---
 ## 2026-05-14 — Asgard: self-heal revert loop closed
 
 ### What was happening
