@@ -1,3 +1,37 @@
+## 2026-05-13 — Asgard: PWA v9.27.0 + Spend Tracker
+
+**Who:** Paddy
+
+### Done
+- **falkor-ui v9.27.0 live** at https://falkor-ui.pgallivan.workers.dev/ — deployment 0d15e34016ed4902bfcc4420b0942a69
+- **Rich ProjectsPanel** — tappable cards from project_hub D1 (54 projects), shows status/progress/next_action/detail_md/live_url. Tap project → detail view + 💬 Chat button that opens a pre-prompted conversation.
+- **SpendPanel (💸)** — real spend data from asgard-prod spend_log table. Shows all-time total ($0.065), by-provider bar chart (Anthropic/OpenAI/Groq/Gemini), by-model breakdown, day selector (7/30/90 days). openai/dall-e-3 is the biggest single cost at $0.04.
+- **Bottom nav bar** — fixed 5-tab bar (💬 Chat · 🏠 Home · 🏈 Sport · 📋 Projects · 💸 Spend). Previously navigation required opening a sidebar drawer.
+- **Image gen button** — 🎨 button in chat input row + `/image <prompt>` slash command → calls asgard-ai /image/generate, renders result inline.
+- **Token limit: 1024 → 4096** in asgard-ai /chat/smart (deployment 22571ffeaef94d71ad1767db84ecf3b8)
+- **Agentic spend logging** — /chat/agentic now logs to spend_log after every completed run
+- **Spend endpoint enriched** — /admin/spend returns by_provider, by_model, by_day, all_time totals
+
+### Why it took effort
+Previous patches injected JSX into the Worker's module scope instead of inside the String.raw HTML template. Fixed by: using React.createElement (no JSX syntax), building from the clean v9.25 source, and verifying all positions are inside the HTML template literal.
+
+### AI account/subscription summary
+- Anthropic: hello@luckdragon.io, pay-as-you-go, $0.023 spent
+- OpenAI: project key (sk-proj-), pay-as-you-go, $0.041 spent
+- Groq: free tier, 12k TPM limit — UPGRADE to Dev Tier at console.groq.com (free, unblocks agentic write tasks)
+- Gemini: paddy@luckdragon.io, GCP project 205533966048, free tier
+- ElevenLabs: API key missing user:read permission — regenerate with full permissions
+
+### Pending (next session)
+1. Google OAuth re-consent → Calendar API enable (URL at /admin/oauth-broader-url?pin=535554)
+2. CF tokens: Vectorize Edit + Zone DNS Edit (CF dashboard)
+3. schoolstaffhub.com.au re-registration (VentraIP ID verification)
+4. longrangetipping.com.au DNS records (needs CF_DNS_TOKEN)
+5. Groq Dev Tier upgrade (console.groq.com, 2 min)
+6. ElevenLabs API key regeneration with full permissions
+
+---
+
 ## 2026-05-13 session 3 — OAuth fix → R2 asset storage
 
 ### Done
