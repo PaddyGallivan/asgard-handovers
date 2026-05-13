@@ -1,19 +1,19 @@
 # Asgard — Current State (2026-05-14)
 
-## Status: Active build | Progress: ~50% | Self-heal revert-loop CLOSED
+## Status: Active build | Progress: ~52% | Cross-chat revert loop resolved
 
 ## Live versions
-| Worker | Version | URL |
-|---|---|---|
-| falkor-ui (PWA) | v9.33.0 | falkor.luckdragon.io + asgard.luckdragon.io |
-| asgard-ai | v6.5.0 (238,256 B) | asgard-ai.luckdragon.io |
-| falkor-agent | v2.10.0 | falkor-agent.luckdragon.io |
-| falkor-workflows | v3.13.0 | falkor-workflows.luckdragon.io |
-| falkor-brain | v1.0.0 | falkor-brain.luckdragon.io |
-| falkor-push | v1.1.2 | falkor-push.luckdragon.io |
-| falkor-calendar | v1.2.0 | falkor-calendar.luckdragon.io |
-| asgard-vault | v1.4.1 | asgard-vault.pgallivan.workers.dev |
-| falkor-code | v1.5.0 | falkor-code.luckdragon.io |
+| Worker | Version | URL | Source of truth |
+|---|---|---|---|
+| falkor-ui (PWA) | v9.34 content (VERSION constant still reads '9.33.0' — file never bumped) | falkor.luckdragon.io + asgard.luckdragon.io | GH commit `087bd667` |
+| asgard-ai | v6.5.0, 244,876 B, 44 routes | asgard-ai.luckdragon.io | GH commit `582afec9` |
+| falkor-agent | v2.10.0 | falkor-agent.luckdragon.io | |
+| falkor-workflows | v3.13.0 | falkor-workflows.luckdragon.io | |
+| falkor-brain | v1.0.0 | falkor-brain.luckdragon.io | |
+| falkor-push | v1.1.2 | falkor-push.luckdragon.io | |
+| falkor-calendar | v1.2.0 | falkor-calendar.luckdragon.io | |
+| asgard-vault | v1.4.1 | asgard-vault.pgallivan.workers.dev | |
+| falkor-code | v1.5.0 | falkor-code.luckdragon.io | |
 
 ## Infrastructure
 - CF account: a6f47c17811ee2f8b6caeb8f38768c20
@@ -21,43 +21,32 @@
 - Cost: ~$4-6/mo
 - Vault PIN: 535554 | Paddy PIN: 2967
 
-## asgard-ai canonical state (THE FIX from 2026-05-14)
-Three versions had been fighting each other across chats:
-- GitHub source was 244,876 B (latest pushed code from another chat, never deployed)
-- Live deployment was 238,256 B (the clean post-session-9 version)
-- Vault canonical_deploy_id was `cb8d4bc1...` / canonical_size 227,737 B (an older revision)
+## asgard-ai canonical state (2026-05-14 final)
+- Vault `ASGARD_AI_CANONICAL_DEPLOY_ID` = `a80713d0-781b-443c-aa8f-d7822bc2f867`
+- Vault `ASGARD_AI_CANONICAL_SIZE` = `244876`
+- GH `Luck-Dragon-Pty-Ltd/asgard-source/workers/asgard-ai.js` = same 244,876 B bytes (commit `582afec9`)
+- Live CF deployment version_id = same `a80713d0...` (244,876 B)
 
-Every minute the falkor-workflows watchdog compared live vs vault canonical, fetched GitHub source, redeployed, and updated canonical to its own redeploy. So any chat's change to asgard-ai was reverted ~14 min later (watchdog throttle).
+All three pointers identical. Watchdog returns healthy without redeploying.
 
-**Resolution:** adopted current live as truth.
-1. Pushed live asgard-ai bytes → GitHub `Luck-Dragon-Pty-Ltd/asgard-source/workers/asgard-ai.js` (commit `383c61d3`)
-2. Vault `ASGARD_AI_CANONICAL_DEPLOY_ID` = `89867dc1-b568-4dd4-ad65-4d686fac140c`
-3. Vault `ASGARD_AI_CANONICAL_SIZE` = `238256`
-4. Cleared watchdog throttle stamp in KV (`ASGARD_KV / watchdog:asgard-ai:last-check`)
-5. Verified: live ID == canonical ID == GitHub source size. System at rest.
+44 routes including `/image/generate-and-store`, `/chat/agentic`, `/memory`, `/tts`, `/stt`, `/speak`, `/weather`, `/drive/*`, `/google/*`, `/discord/*`, `/slack/post`, `/telegram/*`, `/vercel/*`, `/github/*`, `/admin/errors`.
 
-**Going forward, to change asgard-ai without the watchdog reverting:**
-- Commit the new bytes to `asgard-source/workers/asgard-ai.js` FIRST
-- Deploy to CF
-- PUT the new deployment_id into vault `ASGARD_AI_CANONICAL_DEPLOY_ID` (and size into `_CANONICAL_SIZE`)
+## How to change asgard-ai without it being reverted
+1. Commit new bytes to `asgard-source/workers/asgard-ai.js` FIRST.
+2. Deploy via `PUT /accounts/{acct}/workers/scripts/asgard-ai/content` (multipart, preserves bindings). Capture `version_id` from CF response or `/versions` endpoint.
+3. PUT new `version_id` to vault `ASGARD_AI_CANONICAL_DEPLOY_ID`.
+4. PUT new size to vault `ASGARD_AI_CANONICAL_SIZE`.
 
-Without step 3, the watchdog will redeploy from GitHub (which now matches anyway, so it's a no-op churn instead of a hostile revert).
+Skip step 3-4 and the watchdog (cron `* * * * *`, throttled to once per 14 min) will redeploy from GitHub at the next tick. Since GitHub matches live, that's a no-op churn instead of a hostile revert.
 
-## Self-healers map (audit)
-- **falkor-workflows watchdog** (cron `* * * * *`, throttled to once per 14 min via `ASGARD_KV` stamp): heals asgard-ai by reverting any deploy that doesn't match `ASGARD_AI_CANONICAL_DEPLOY_ID` in vault, using GH `asgard-source` as source of truth. Uses `GH_ADMIN_TOKEN` from vault. ON.
-- **falkor-code self-heal** (cron `*/15 * * * *`): asgard-ai entry has `autoHeal: false` — it monitors but does NOT redeploy asgard-ai. Other workers may have autoHeal: true.
+## Self-healers map
+- **falkor-workflows watchdog** (cron `* * * * *`, 14-min throttle via `ASGARD_KV` key `watchdog:asgard-ai:last-check`): only asgard-ai. Source of truth = GH `asgard-source/workers/asgard-ai.js`. Uses `GH_ADMIN_TOKEN` from vault.
+- **falkor-code self-heal** (cron `*/15 * * * *`): monitors ~16 workers. asgard-ai is `autoHeal: false` (monitor only). falkor-ui and most other falkor-* workers are `autoHeal: true` — they get redeployed from GH if probe fails. So falkor-ui changes also need to be in GH.
 - **auto-handover** (cron `30 21 * * *`): writes daily session block to SESSION-HANDOVER.md.
 
-## asgard-ai tools (38 admin + agentic)
-rate_doc, get_doc_ratings, drive_patch, docs_replace_text, docs_append_text, image/generate-and-store, plus the standard chat/agentic loop tools.
+## Going-in-circles symptom — root cause
+Multiple chats deployed forward-progress versions to BOTH asgard-ai AND falkor-ui throughout 2026-05-13. Other chats then "fixed" perceived problems by reverting to the previous version, losing all the forward work. This was not a watchdog issue (the watchdog only affects asgard-ai). Examples on 2026-05-13:
+- falkor-ui v9.34 deployed at 13:47 with userId fix, WS retry, productContext, capabilities grid, version footer → reverted to v9.33 at 13:58 ("clean") → forward to v9.35 at 14:02 (cache-bust) → reverted again to v9.33 at 14:03 ("causes reload loop"). Net: lost most of the feature work.
+- asgard-ai memory_v2 patches + /image/generate-and-store committed at 12:12 (244,876 B) → smaller deploy at 12:48 (238,256 B) put live, lost the patches.
 
-## Falkor PWA
-v9.33.0, no Babel, pre-compiled JSX, ~1s load. Falkor dog mascot on login + loading + error. FALKOR_MASCOT constant: 6 poses in Supabase generated-images/falkor-mascot/. Auto-update via SW + 5-min version poll + tab-focus poll. Known: browsers may serve old asgard-workers cache — fix by incognito or clearing site data.
-
-## Outstanding (carried over)
-1. longrangetipping.com.au — `dns_activate` task auto-completes once CF zone activates
-2. Enable Docs/Sheets/Slides APIs in GCP project 205533966048
-3. schoolstaffhub.com.au — VentraIP registration needed (ID verification)
-4. Calendar API consent — `/admin/oauth-broader-url?pin=535554`
-5. CF tokens — Zone DNS Edit + Vectorize Edit for remaining zones
-6. Asgard Final Build — Tier 2→1 promotion list, Tier 3 triage, 52 workers without `/health` to decide on
+When the PWA called endpoints on the regressed asgard-ai that didn't exist (e.g. `/image/generate-and-store`), the browser dev console showed 404s — the "console using some asgard-ai" Paddy spotted. Now resolved by ro
