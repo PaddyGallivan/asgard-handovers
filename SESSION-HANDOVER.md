@@ -1,3 +1,37 @@
+## 2026-05-13 — KBT Tool Suite + Rotation System
+
+**Who:** Paddy
+**Duration:** Full session
+
+### Done
+- **tools.html rebuilt** — 31 tools in 8 categories (was 10)
+- **kbt-brand.js v2** — dark theme applied to all 31 tools (NOTE: real Slides are white — canvas output theme needs revisit)
+- **face-morph v13** — auto-run fal.ai morph (no manual upload needed), AI base for version grid
+- **All 26 existing tools** — dark body bg, dark slide canvas bg, purple→teal accent
+- **flag-mashup-tool v2** — full rebuild with country picker + 3 blend modes
+- **21 previously-unlisted tools** — all verified functional: dark theme, slide export, in hub
+- **3 stub fixes** — country-outline (dark text on dark bg), baby-photo + pixel-reveal (export bg)
+- **/api/save-question** — generic save for all 68 types (Drive upload + Supabase insert)
+- **kbt-save.js** — shared Save to Library snippet
+- **Save button added** to 11 tools
+- **kbt_qtype rows 49–68** — inserted into Supabase for all 20 new types
+- **QTYPE_ID_MAP** — correct IDs matching live DB
+- **20 new QUESTION_TYPES** — in generate-event-deck-v2 (accent + wordmark)
+- **kbt-api redeployed** — 3x (syntax fix, token fix, final)
+- **RESUME-HERE.md + HANDOVER-MASTER.md** — updated in kbt-trivia-tools repo
+
+### Outstanding
+- Tool canvas OUTPUTS are dark (#0f172a) but real KBT slides are white — needs reconciling
+- 8 tools still need Save button: backwards, emoji-song, first-letters, instrument-solo, intro-only, voice-id, translator-fail, wrong-speed
+- Google OAuth token expired — Drive upload in save-question will fail until refreshed
+- Face morph v13 failures F1–F10 still need Paddy visual confirm
+- New qtype IDs 49–68 not yet usable in generate-event-deck-v2 (need slide layout config per type)
+
+### Key refs
+- kbt-api worker: deployed 2026-05-13, etag 5a7b4661
+- kbt_qtype: 68 rows (IDs 1–68)
+- Supabase: huvfgenbcaiicatvtxak.supabase.co
+
 # Session Handover — 2026-05-12 (Sport Platform + Firebase Decommission)
 
 **For:** the next Claude session.
