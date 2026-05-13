@@ -1,29 +1,49 @@
-# SportPortal — Current State (2026-05-12)
+# SportPortal — Current State (2026-05-13)
 
-Live domains all 200:
-- sportportal.com.au (marketing)
-- schoolsportportal.com.au (portal + districts/divisions/regions hierarchy)
-- sportcarnival.com.au (carnival event pages with cross-linking banner)
-- carnivaltiming.com (per-event live results pages)
+## Status: FULLY OPERATIONAL — 58/58 tests passing
 
-Canonical URL scheme (per Paddy 2026-05-12):
-- sportportal.com.au = home (.com is unowned, registered with Uniregistry, not acquirable)
-- schoolsportportal.com.au/williamstownps = WPS school page
+## Live domains
+- sportportal.com.au (marketing hub)
+- schoolsportportal.com.au (portal + hierarchy)
+- www.schoolsportportal.com.au (serves full portal — DNS change needed for strict 301, low priority)
+- sportcarnival.com.au (carnival event pages)
+- carnivaltiming.com (per-event live results pages, D1-backed)
+
+## Canonical URL scheme
+- sportportal.com.au = home (.com unowned, Uniregistry)
+- schoolsportportal.com.au/williamstownps = WPS school
 - schoolsportportal.com.au/district/primary/williamstown = Williamstown District
 - schoolsportportal.com.au/division/primary/{hobsonsbay,wyndham}
-- schoolsportportal.com.au/login?as=<account_id> for admin disambiguation
-- sportcarnival.com.au/williamstownps/{XC26,Athletics26,Swim26}
-  (XC26 -> 302 redirect to district XC; no standalone WPS XC carnival exists)
-- sportcarnival.com.au/district/primary/williamstown/XC26
-- carnivaltiming.com/{wps-athletics-2026,wps-swimming-2026,wd-crosscountry-2026} live timing
-- carnivaltiming.com/marketing preserves the old marketing landing
-- District legacy: district.luckdragon.io -> 301 -> /district/primary/williamstown
-- WPS Athletics legacy: wps-athletics-2026.pages.dev -> meta-refresh -> canonical Athletics26
+- schoolsportportal.com.au/{district,division,region,state} = hierarchy indexes
+- schoolsportportal.com.au/login?as=<account_id> = admin disambiguation
+- sportcarnival.com.au/williamstownps/{Athletics26,Swim26} = school carnival apps
+- sportcarnival.com.au/williamstownps/XC26 → 302 → /district/primary/williamstown/XC26
+- sportcarnival.com.au/district/primary/williamstown/XC26 = WD XC carnival
+- carnivaltiming.com/{wps-athletics-2026,wps-swimming-2026,wd-crosscountry-2026} = live timing
+- carnivaltiming.com/marketing = old marketing landing (preserved)
+- Legacy redirects: district.luckdragon.io→/district/primary/williamstown; wps-athletics-2026.pages.dev→/Athletics26
 
-Firebase status: production code is fully off Firebase. /fl/, /wps_aths_2026, /carnivalResults paths still exist in Firebase Realtime DB as mirror, but no live writer/reader. Anonymous writes still possible until rules are pasted (paddy attempted 2026-05-12 but rules did not take effect).
+## Firebase status: FULLY DECOMMISSIONED
+- No production code executes any Firebase SDK
+- Firebase rules locked: anon writes return 401 on all paths
+- Public reads still work on /fl, /wps_aths_2026, /carnivalResults (timing pages)
+- Service account: firebase-rules-admin@willy-district-sport.iam.gserviceaccount.com
+- Vault key: FIREBASE_ADMIN_KEY_WILLY_DISTRICT_SPORT
 
-Source of truth: D1 via carnival-results worker (db_id 4c39e40c-b6ca-40db-83bb-e8c69bad6537). API: /api/list, /api/results?carnival=CODE, POST /api/results/{code} (auth: X-Publish-Pin header or session cookie).
+## Data source: D1 (canonical)
+- carnival-results worker, db_id 4c39e40c-b6ca-40db-83bb-e8c69bad6537
+- GET /api/list → carnival list
+- GET /api/results?carnival={CODE} → race results
+- POST /api/results/{CODE} → publish (requires X-Publish-Pin header)
+- Vault key: CARNIVAL_PUBLISH_PIN (20 chars, marshal prompt once per session)
 
-Publish PIN: vault key CARNIVAL_PUBLISH_PIN. Used by marshal apps via sessionStorage prompt.
+## Workers
+- ssp-portal: schoolsportportal.com.au + www (full portal, hierarchy, admin)
+- sportcarnival-hub: sportcarnival.com.au (all event pages, nav banner injection)
+- carnival-results: /api/* endpoints, D1-backed
+- carnival-timing-html: carnivaltiming.com (per-event live results pages)
 
-See SESSION-HANDOVER.md for full session detail.
+## Next actions
+- First carnival day: give marshal CARNIVAL_PUBLISH_PIN from Vault
+- Post-carnival: verify D1 results, schedule GCP project deletion after 1 clean month
+- www.schoolsportportal.com.au strict 301: needs DNS edit permission for schoolsportportal.com.au zone
