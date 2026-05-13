@@ -1,3 +1,35 @@
+## 2026-05-13 — Sport Portal: privacy policy fix, Drive organisation, reference doc, legal/compliance
+
+### What was done
+1. **Privacy policy Firebase region fixed** — both `ssp-portal` and `sportcarnival-hub` workers deployed with corrected text. Previous wording incorrectly stated "Australian region (australia-southeast1)". Now correctly states "Singapore region (asia-southeast1) — legacy only, district coordinator data, migration to D1 in progress." Live at schoolsportportal.com.au/privacy.
+2. **Sport Portal Drive folder created** — drive.google.com/drive/folders/1vp6p3iWjBGzUkmrvzKxL5EW2wyh4HyO4 (inside Luck Dragon folder). Contains: plain text Google Doc (19-section master reference), formatted docx (open with Google Docs to get headings/links).
+3. **Master reference document generated** — 19-section internal reference covering: business overview, SSV structure, Paddy's dual role + legal position (DET IP grey area, conflict of interest), IP ownership, trademark status, student data handling, data storage (D1 Sydney compliant, Firebase Singapore non-compliant), marketing strategy + acquisition funnel, roadmap, all URLs, onboarding flow, architecture, costs/revenue, legal/compliance framework, Firebase migration status, operational runbook, appendix.
+4. **Drive folder audit** — found no dedicated Sport Portal folder existed previously; files scattered. SSV Project Spec, Pitch Deck, Winter Sport spreadsheets, Legal Brief for Nick all located and catalogued.
+5. **Session discussion: Paddy's dual role** — full discussion of DET IP grey area, conflict of interest, recommended legal steps: (1) disclose to WPS principal, (2) AEU/employment lawyer on IP question, (3) trademark registration for 'School Sport Portal' and 'Carnival Timing' (~$250/name via IP Australia).
+6. **Business context documented** — pricing ($1+GST/student/year), acquisition funnel (Williamstown → Hobsons Bay → Wyndham → WMR → SSV preferred supplier), target customer (PE teachers/district coordinators), unit economics (~$10/month fixed cost, $0 marginal per school).
+
+### What's outstanding
+- /billing Stripe Customer Portal URL — placeholder in worker, needs real URL from Stripe Dashboard
+- Firebase → D1 migration (district coordinator data) — post-carnival
+- WPS principal/phone — NULL in D1, fill when ready
+- Conflict of interest disclosure to WPS principal — simple form
+- AEU/employment lawyer on DET IP question
+- Trademark registration — School Sport Portal + Carnival Timing
+- Formatted Google Doc — docx in Drive folder, right-click → Open with Google Docs
+
+### Resume steps
+1. Read sportportal.md (updated this session with full legal/compliance/business context)
+2. Pre-carnival: confirm CARNIVAL_PUBLISH_PIN accessible from Vault
+3. Carnival day: sportcarnival.com.au/williamstownps/Athletics26 + PIN
+4. Post-carnival: verify D1 at /api/results?carnival=WPSAT, then Firebase migration work
+
+### Key paths/secrets touched
+- Workers modified: ssp-portal, sportcarnival-hub (privacy policy fix)
+- Drive folder created: 1vp6p3iWjBGzUkmrvzKxL5EW2wyh4HyO4
+- Google Doc created: 1s-1u1bHsxbXO71p9yEJEfmhAWrpqRyAXWUHhLqVcoTo
+- D1: ssp-db (3b16b0aa) — school suburb/state data confirmed correct
+- Vault keys relevant: CARNIVAL_PUBLISH_PIN, CF_FULLOPS_TOKEN, GITHUB_TOKEN
+
 ## 2026-05-13 session 8 (continued) — site recovery + audit
 
 ### What happened
@@ -523,3 +555,4 @@ Rules file is at `Luck-Dragon-Pty-Ltd/asgard-workers/docs/firebase-rules-2026-05
 1. Run the Firebase rules check probe above
 2. If rules still open: prompt Paddy to either paste manually OR generate service account
 3. If carnival has run: verify D1 results and clean up Firebase mirror (`pushToFirebase` in `carnival-timing-ws`)
+
