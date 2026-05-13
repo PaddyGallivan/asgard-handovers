@@ -1,41 +1,46 @@
 # KBT — Know Brainer Trivia
-Last updated: 2026-05-13 (session 3)
+Last updated: 2026-05-13 (session 4)
 
 ## Live
 - **Website:** knowbrainertrivia.com.au
 - **Tools hub:** kbt.luckdragon.io/tools (31 tools, 8 categories)
-- **API worker:** kbt-api.luckdragon.io (deployed 2026-05-13 session 3)
+- **API worker:** kbt-api.luckdragon.io
 - **Source:** github.com/LuckDragonAsgard/kbt-trivia-tools
 
-## Asset Storage — R2 (fully working)
+## Deck Generation — WORKING ✅
+- **Endpoint:** POST /api/generate-event-deck-v2
+- **Architecture:**
+  1. Drive copy via asgard-ai /admin/drive-op (PIN 535554) — uses paddy@luckdragon.io token
+  2. Slides batchUpdate via SA token (kbt-slides@asgard-493906) — direct Slides API
+  3. Output folder: 1LI91ZcUTl5UGR_LWN3nQyS9uDigRM0L3 (KBT Generated Decks, shared with paddy)
+- **Base template:** 1R7xJwPwd811x2nUlLe2R1V8YbYuEQI6Rc099BdGcPX8 (KBT Master Event Deck v2)
+- **Templates folder:** 1BhuxB_9YrjXYR5zWGbxkHXYEez74AAHx (KBT Templates - Canonical, paddy@luckdragon.io)
+- **Auth chain:** GOOGLE_SA_JSON (asgard-493906 kbt-slides SA) for Slides API; asgard-ai drive-op proxy for Drive copy
+
+## Asset Storage — R2 ✅
 - **Bucket:** kbt-assets (Cloudflare R2)
 - **Public URL:** https://pub-1a54ecdb73db411abfee3ed3772db25e.r2.dev
-- **Path pattern:** /questions/{timestamp}-{type}-Q.png and -A.png
-- **No OAuth needed** — R2 bound directly to kbt-api worker
-- Google Drive / OAuth path permanently abandoned (bubbly-clarity-494509 project inaccessible)
-
-## Save to Library — fully wired
-- All 31 tools have 💾 Save to Library button
-- /api/save-question → uploads Q+A PNGs to R2 → inserts into kbt_question with asset URLs
-- Verified working: questionId=106724, R2 URLs returning 200
+- **Save to Library:** all 31 tools → R2 + Supabase
 
 ## DB
 - **Supabase:** huvfgenbcaiicatvtxak.supabase.co
-- **kbt_qtype:** 68 rows (IDs 1–68, new types 49–68 for all tools)
-- **New Qs land as:** status=draft
+- **kbt_qtype:** 68 rows (IDs 1–68)
+- **New Qs:** status=draft
 
-## Weekly rotation
-1. Use tools → 💾 Save to Library → Q+A PNGs in R2, metadata in Supabase
-2. Admin → filter draft → approve
-3. Friday: pick Qs → generate-event-deck-v2 → Slides deck
+## asgard-ai /admin/drive-op (PIN 535554)
+- op: copy — { src_id, parent, name } → { ok, id, url }
+- op: slides-get — { presentation_id } → { ok, slides, title }
+- op: slides-update — { presentation_id, requests } → { ok, replies }
+- Uses GOOGLE_REFRESH_TOKEN (paddy@luckdragon.io, drive + calendar scope)
 
-## Tools — all 31 live, dark UI + white slide outputs
-All 31 tools: dark chrome, white 1920×1080 slide exports, Save to Library wired.
+## Weekly workflow
+1. Tools → 💾 Save → R2 + Supabase (draft)
+2. Admin → approve questions
+3. Friday → generate-event-deck-v2 with event_id or inline questions → Google Slides deck
 
 ## kbt_qtype IDs (key)
 face_morph=19, soundmash=26, crack_the_code=14, name_the_brain=24
-New: baby_photo=49, backwards=50, pixel_reveal=51, city_skyline=52, close_up=53,
-country_outline=54, emoji_song=55, first_letters=56, flag_mashup=57,
-instrument_solo=58, intro_only=59, movie_frame=60, silhouette=61,
-sound_and_pic=62, stats_puzzle=63, text_message=64, title_sequence=65,
-translator_fail=66, voice_id=67, wrong_speed=68
+New types 49–68: baby_photo, backwards, pixel_reveal, city_skyline, close_up,
+country_outline, emoji_song, first_letters, flag_mashup, instrument_solo,
+intro_only, movie_frame, silhouette, sound_and_pic, stats_puzzle, text_message,
+title_sequence, translator_fail, voice_id, wrong_speed
