@@ -1,3 +1,71 @@
+## 2026-05-13 — Sport Platform: Full Audit, Gap Fixes, Reference Docs
+
+**Who:** Paddy
+**Project:** Sport Platform (sportportal / sportcarnival / schoolsportportal / carnivaltiming)
+
+### Done this session
+
+**Firebase security (completed):**
+- Service account created: `firebase-rules-admin@willy-district-sport.iam.gserviceaccount.com`, Firebase Realtime Database Admin role
+- Key in Vault: `FIREBASE_ADMIN_KEY_WILLY_DISTRICT_SPORT`
+- All anonymous writes confirmed blocked (HTTP 401) on /test_root, /fl, /scores, /users, /fb
+- Public reads on /fl/WPSAT still work (timing pages)
+
+**Infrastructure fixes:**
+- `www.schoolsportportal.com.au` — now 301 → apex (worker route + redirect code)
+- `/division/primary/wyndham` — was 404, now serves Wyndham Division portal
+- `/wmr` — was 404, now serves Western Metropolitan Region page
+- `/region` page — now links to /wmr
+- `district.luckdragon.io/*` — was path-preserving (causing 404s on /about etc), now always strips path → fixed apex URL
+- District site restored to full 90KB app (`district-sport/index.html`) — was serving 21KB coordinator-only stub from wrong repo
+- `env.SSP_DB` → `env.DB` bug fixed (binding is named DB, not SSP_DB — was silently failing all D1 lookups on school page routes)
+
+**New pages built:**
+- `/contact` — standalone contact form wired to ssp-contact worker
+- `/forgot-password` — calls carnival-results `/auth/forgot-password` API (15-min token, Resend email)
+- `/pricing` — full pricing table, Stripe buy links ($49/$149), FAQ
+- `/billing` — 301 → Stripe Customer Portal (manage subscription, update card)
+- `/pricing`, `/contact`, `/forgot-password` added to sitemap.xml
+
+**Flow fixes:**
+- Login page — "Reset it here" link added (was just mailto)
+- Stripe webhook — `invoice.paid` handler: re-activates school DB record + sends renewal confirmation email
+- Stripe webhook — `invoice.payment_failed` handler: sends payment failure warning email
+- `POST /admin/school/settings` endpoint added (suburb, state, principal, phone)
+- School page (/williamstownps) — now reads from D1 dynamically via slug alias (williamstownps → williamstownprimary), shows "Williamstown, VIC"
+- carnivaltiming.com — `/contact`, `/forgot-password`, `/signup`, `/pricing` all 301 to SSP canonical; unknown paths return 404 instead of silently serving the event index
+
+**Testing:**
+- Full link audit: 62/62 internal links valid across 22 pages (zero broken)
+- All timing auto-links correct: Athletics26→wps-athletics-2026, Swim26→wps-swimming-2026, XC26→wd-crosscountry-2026
+- 25/25 key URL status checks passing
+
+**Documentation:**
+- `sport-platform-complete-reference.docx` generated (v2, 14 sections): business overview, revenue projections, URL structure, onboarding/setup flow, all email templates, portal operation, carnival timing, backend architecture, how to make changes, domains/hosting, Firebase/legacy, costs/unit economics, legal/compliance (all 10 policy pages), operational runbook
+
+### Outstanding
+- **District app Firebase migration** — `district-sport/index.html` still uses `firebase.auth()` + `firebase.database()` for all seasonal data (seasons, rounds, fixtures, ladders, teams). Migration deferred post-WPS Athletics carnival. Needs D1 schema design first.
+- **First carnival day** — marshal uses `/williamstownps/Athletics26`, prompted for PIN once. Give them `CARNIVAL_PUBLISH_PIN` from Vault.
+- **WPSAT test data** — 12 places (Liam Chen, Emma Thompson etc) are synthetic. Real results come through on carnival day.
+- **Williamstown PS principal** — cleared (null) by Paddy's instruction. Update via `/admin/school/settings` when ready.
+- **/billing Stripe URL** — placeholder URL used (`billing.stripe.com/p/login/eVa6p89lz7bqf0Q8ww`). Configure real Stripe Customer Portal URL in Stripe Dashboard → Settings → Customer Portal, then update the /billing redirect in ssp-portal worker.
+- **Post-carnival** — verify D1 results at `/api/results?carnival=WPSAT`, then schedule GCP project deletion after 1 clean month.
+
+### Resume steps
+1. `curl -ssk -o /dev/null -w "%{http_code}" https://schoolsportportal.com.au/contact` → should 200
+2. `curl -ssk -o /dev/null -w "%{http_code}" https://schoolsportportal.com.au/forgot-password` → should 200
+3. Check /billing Stripe URL is the real Customer Portal (configure in Stripe Dashboard if not)
+4. Carnival day: get `CARNIVAL_PUBLISH_PIN` from Vault, give to marshals
+
+### Key paths and secrets touched
+- `ssp-portal` worker: contact, forgot-password, pricing, billing routes; invoice.paid/payment_failed webhook handlers; slug alias map; env.SSP_DB→env.DB fix; admin/school/settings endpoint; /billing; sitemap
+- `carnival-timing-html` worker: routing fixed (catch-all replaced with proper 404 + 301 redirects for known paths)
+- `district-proxy` worker: path-stripping fixed
+- D1 `ssp-db` (3b16b0aa): schools updated with suburb/state for WPS, district, Hobsons Bay, Wyndham; principal/phone cleared for WPS
+- Vault: `FIREBASE_ADMIN_KEY_WILLY_DISTRICT_SPORT` (new), `CARNIVAL_PUBLISH_PIN` (existing)
+- GitHub: `Luck-Dragon-Pty-Ltd/district-sport/main/index.html` — live-fetched (commit = instant deploy)
+
+---
 ## 2026-05-13 session 4 — Deck generation working end-to-end
 
 ### Done
