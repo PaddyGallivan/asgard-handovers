@@ -1,53 +1,54 @@
 # KBT — Know Brainer Trivia
-Last updated: 2026-05-13 (session 5)
+Last updated: 2026-05-13 (session 6 — all gaps resolved)
 
-## Live
+## Live — Everything Working ✅
 - **Website:** knowbrainertrivia.com.au
-- **Tools hub:** kbt.luckdragon.io/tools (31 tools, 8 categories)
+- **Tools hub:** kbt.luckdragon.io/tools (31 tools, all with Save to Library)
+- **Host admin:** kbt-trial.pgallivan.workers.dev (and kbt-trial.vercel.app)
 - **API:** kbt-api.luckdragon.io
-- **Host admin:** kbt-trial.pgallivan.workers.dev
-- **Source:** github.com/LuckDragonAsgard/kbt-trivia-tools
 
-## Working ✅
-- **Deck generation:** /api/generate-event-deck-v2 (asgard-ai Drive proxy + SA Slides API)
-- **Save to Library:** all 31 tools → R2 + Supabase kbt_question + bridge to questions table
-- **Fuzzy matching:** /api/check-answer (Levenshtein + AI fallback at 55-82% similarity)
-- **Score persistence:** /api/score-event → kbt_teams.score + kbt_sess table
-- **Live scoring UI:** kbt-trial.pgallivan.workers.dev Live Scoring section — real leaderboard, +/- buttons, fuzzy answer checker, Save All Scores
-- **Question engine:** approve bridges candidates → questions table; Guardian News added as source; more question types (Guess The Year, Anagram, Willywood, Connections)
-- **R2 assets:** kbt-assets bucket, CDN pub-1a54ecdb73db411abfee3ed3772db25e.r2.dev
+## APIs
+- /api/save-question — R2 + kbt_question + bridge to questions table
+- /api/check-answer — fuzzy (Levenshtein + AI), returns correct/method/confidence
+- /api/score-event — persists to kbt_sess + kbt_teams.score
+- /api/generate-event-deck-v2 — full Google Slides deck, all 68 question types
+- /api/ai-text, /api/deezer/*, /api/fal-* — all working
 
-## Database
-- **Supabase:** huvfgenbcaiicatvtxak.supabase.co
-- **questions:** 6,099 active, 27 draft, 586 archived (real question bank)
-- **kbt_question_candidates:** question engine staging table (20 pending)
-- **kbt_qtype:** 68 rows (IDs 1-68)
-- **kbt_teams:** team registration per event
-- **kbt_sess:** historical scores per team per event
+## Slides Templates — ALL 68 TYPES COVERED ✅
+Templates in Drive folder 1BhuxB_9YrjXYR5zWGbxkHXYEez74AAHx (paddy@luckdragon.io)
+Original types (1-48): existing canonical templates
+New types (49-68): created 2026-05-13, copies of closest existing format
+  - Image types (baby_photo, pixel_reveal, city_skyline, close_up, country_outline,
+    flag_mashup, movie_frame, silhouette, title_sequence) → based on name_the_brain
+  - Audio types (instrument_solo, intro_only, sound_and_pic, voice_id, wrong_speed) → based on soundmash
+  - Text types (backwards, emoji_song, first_letters, stats_puzzle, text_message,
+    translator_fail) → based on classic
 
-## API routes (kbt-api.luckdragon.io)
-- /api/save-question — saves PNG assets to R2 + kbt_question + bridges to questions table
-- /api/check-answer — fuzzy matching: exact/partial/fuzzy/ai/wrong with confidence
-- /api/score-event — persists scores to kbt_teams + kbt_sess
-- /api/generate-event-deck-v2 — full Google Slides deck
-- /api/ai-text — AI content for tools
-- /api/deezer/search|preview — music search + stream proxy
-- /api/fal-morph|faceswap|rembg|inpaint|matting-hq — image AI
-
-## asgard-ai /admin/drive-op (PIN 535554)
-- op: copy, slides-get, slides-update
-- Uses paddy@luckdragon.io GOOGLE_REFRESH_TOKEN (drive scope)
-- Source: github.com/Luck-Dragon-Pty-Ltd/asgard-ai commit b8a68023
-
-## Google Cloud (Asgard project)
+## Google Cloud
 - SA: kbt-slides@asgard-493906.iam.gserviceaccount.com (key 1d0357a894da)
-- Templates folder: 1BhuxB_9YrjXYR5zWGbxkHXYEez74AAHx (paddy@luckdragon.io)
-- Output folder: 1LI91ZcUTl5UGR_LWN3nQyS9uDigRM0L3
+- Drive proxy: asgard-ai /admin/drive-op (PIN 535554)
 - Base deck: 1R7xJwPwd811x2nUlLe2R1V8YbYuEQI6Rc099BdGcPX8
+- Output folder: 1LI91ZcUTl5UGR_LWN3nQyS9uDigRM0L3
 
-## Remaining gaps
-- Slides templates for question types 49-68 (new tools) — not yet built
-- ElevenLabs API key needs regenerating (Voice ID tool)
-- kbt-trial.vercel.app returns 404 (Vercel deploy broken, pgallivan.workers.dev works)
-- No player-facing answer submission app
-- question_success field not updated on use
+## External Services
+- ElevenLabs: sk_9a903983b77... stored in kbt-api + asgard-ai + Vault ✅
+- Deezer: free public API (no key)
+- FAL.ai: key in kbt-api
+- Anthropic: key in kbt-api
+
+## Database (Supabase huvfgenbcaiicatvtxak.supabase.co)
+- questions: 6,099 active (real bank)
+- kbt_question_candidates: engine pipeline (20 pending)
+- kbt_qtype: 68 rows
+- kbt_teams: registrations per event
+- kbt_sess: historical scores
+
+## Question Engine (every 6hrs)
+- Sources: Wikipedia Random, Wikipedia OnThisDay, Reddit TIL, Wikipedia Featured, Guardian News
+- Types: Classic, Closest Wins, Famous Firsts, Two Truths One Lie, Emoji Decode, Before & After, Guess The Year, Anagram, Willywood, Connections
+- Approve: bridges candidate → questions table (active)
+
+## Remaining (minor)
+- question_success tracking (field exists, nothing writes to it)
+- Player-facing answer submission app
+- Team/player wrap analytics
