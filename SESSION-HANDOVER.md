@@ -1,3 +1,16 @@
+## 2026-05-13 session 2 — KBT outstanding items cleared
+
+### Done
+- **Save button added** to remaining 8 tools: backwards, emoji-song, first-letters, instrument-solo, intro-only, voice-id, translator-fail, wrong-speed — all 31 tools now have 💾 Save to Library
+- **Google OAuth** — LD token had drive.readonly only; Drive upload made non-fatal (DB save succeeds without asset URL); `/api/google-auth-url` reauth endpoint added for Paddy to get a fresh Drive-write token
+- **Slide canvas outputs** — all 29 tools updated from dark (#0f172a) to white KBT brand (#ffffff bg, subtle grid, dark text) matching real Google Slides templates
+- **kbt-api deployed** (2 deploys this session)
+
+### Outstanding
+- Paddy needs to reauth Google OAuth for Drive asset uploads: https://kbt-api.luckdragon.io/api/google-auth-url
+- Verify slide canvas outputs visually at kbt.luckdragon.io/tools
+- generate-event-deck-v2 slide layouts for new types 49–68 (new tools use default layout template currently)
+
 ## 2026-05-13 — KBT Tool Suite + Rotation System
 
 **Who:** Paddy
