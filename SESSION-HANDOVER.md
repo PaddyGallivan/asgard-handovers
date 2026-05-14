@@ -1,3 +1,56 @@
+## 2026-05-14 — Asgard wrap-up: PWA chat fully working + project-context awareness
+
+### Headline
+The PWA chat now actually does things. Open asgard.luckdragon.io, type a request in plain English, and Falkor fires real tools — writes files to GitHub, deploys workers, creates Google Docs/Sheets/Slides, populates sheets, sends emails, reads worker code, searches Drive, saves memories. Verified end-to-end via Claude in Chrome browser automation, not just curl. Default model is Haiku.
+
+### What got delivered this session
+- **falkor-ui v9.43.0** — chat input visible above the bottom nav (was hidden), bubbles wrap inside their column (not 88vw/96vw of the viewport), assistant message content saved in full (typing animation was truncating partial saves), view state persists to localStorage (no more snapping back to Home), `+ New Chat` button no longer overflows the sidebar right edge, convo-item active highlight contained, default model Haiku (Groq Fast rate-limits on agentic tool calls), Settings shows three real versions (PWA / Falkor chat / AI backend).
+- **asgard-ai v6.7.0** — added `drive_create_file`, `sheets_write_values`, `slides_batch_update` agentic tools (with auto-fallback to Drive root when the legacy ASGARD folder ID 404s). Added `/admin/project-context?name=X` endpoint that aggregates the project record + last 10 project_events + live worker /health + last 5 GitHub commits + a "How to edit this project" playbook. Default model for `/image/generate-and-store` switched from retired dall-e-3 to gpt-image-1. RESEND_API_KEY bound to the worker so send_email works.
+- **falkor-agent v2.12.0** — WS chat path routed from `/chat/stream` (text only) to `/chat/agentic` (tools), broadcasts tool events to the PWA so the UI knows when a tool fires, accepts `msg.system_prefix` and prepends it to the systemPrompt for project-aware chat, multi-pin auth (accepts AGENT_PIN, AI_WORKER_PIN, master vault PIN 535554, or Paddy PIN 2967).
+
+### Project-context-aware chat (the big new thing)
+Clicking 💬 Chat on a project card now does this:
+1. PWA fetches `https://asgard-ai.luckdragon.io/admin/project-context?name=<project>` with X-Pin.
+2. asgard-ai returns the project's D1 row (status, GitHub URL, CF worker name, tech stack, description, next_action, notes, detail_md, revenue, etc.) + recent project_events + live /health from the worker + last GitHub commits + an "edit this project" instruction block tailored to whether the project has a CF worker, GitHub repo, or both.
+3. PWA stores the assembled `system_prefix` on the conversation object and includes it in every WS chat message for that conversation.
+4. falkor-agent prepends the system_prefix to its system prompt, so Falkor knows what project it's working on.
+
+Net effect: ask "edit this project to add a /version-test route" and Falkor uses the right repo, the right worker name, and the right tools.
+
+### The iterative-patch overwrite issue (and how it was fixed)
+Several CSS/JS patches between v9.38 and v9.42 silently overwrote each other. Cause: each `python src.replace(OLD, NEW)` was based on a fresh CF download. Sometimes the download was stale (didn't include the previous patch). Pushing the result back to GH overwrote the GH file, losing the earlier patch. Took two rounds to spot. Fixed by consolidating all pending falkor-ui patches into ONE mega-patch (commit f0292000) and verifying every change in the served HTML with cache-bypass curl. Lesson: when iterating, base patches on the GH HEAD (raw.githubusercontent.com) or always consolidate before pushing.
+
+### Verified end-to-end this session
+- WS chat path → Falkor reads asgard-tools source via `get_worker_code` and reports the version correctly.
+- WS chat path → Falkor writes a real file to asgard-handovers via `github_write_file` (commit `385d2cb95ade`).
+- WS chat path → Falkor reads asgard-tools, adds a `/pwa-test` route, deploys via `deploy_worker`, verifies via `http_request` — full 4-iteration agentic loop. Route is live at https://asgard-tools.pgallivan.workers.dev/pwa-test.
+- Direct API → Falkor creates a Google Doc (with initial text), a Slides deck (with batchUpdate retitle), a Sheet (populated with 10 cells via sheets_write_values), and sends a real email via Resend (id 9898fe18). All confirmed by opening the URLs.
+- Browser test (Claude in Chrome) → typed "Hello Falkor, reply in 5 words" got back "Paddy, I am always listening." (5 words). Typed a 250+ char message asking for a 3-paragraph essay, got back 1,436 chars complete with proper sentence endings, bubble wrapped cleanly in column with no overflow, full content saved to localStorage.
+
+### Still outstanding (carried)
+1. R2 token (R2 Edit scope) — needs human-interactive CF dashboard.
+2. Gmail send — needs separate OAuth consent with gmail.send scope.
+3. longrangetipping.com.au — DNS activate.
+4. schoolstaffhub.com.au — VentraIP registration (ID verification).
+5. drive_read for native Google Docs — uses wrong API for native types; needs Docs export.
+6. Watchdog smarter logic (catastrophic-only revert) — future session.
+7. Server-side per-project conversations (D1 schema change) — currently project-scope is stored client-side as `systemPrefix` per conversation; for true cross-device project threading, add `project_id` column on conversations + filter sidebar by project.
+
+### Resume steps
+1. `curl -s https://asgard-ai.luckdragon.io/health` — should be 200, v6.6.x or higher.
+2. `curl -s https://falkor-agent.luckdragon.io/health` — should be 200, v2.12.x or higher.
+3. `curl -s -H "X-Pin: 535554" https://falkor-agent.luckdragon.io/status` — should return version/historyLength/memoryKeys (no 401).
+4. Open the PWA, Settings → confirm three Versions render.
+5. Click 💬 Chat on any project in Projects view → Falkor should immediately know that project's GitHub repo, CF worker, and edit procedure.
+
+### Key paths and commits this session
+- `asgard-source/workers/asgard-ai.js` — adds `/admin/project-context` + drive_create_file + sheets_write_values + slides_batch_update + drive_create_file auto-fallback (commits: 9696ab27, 2e93a626, 252fb4cb, b2d56ebf, 5aa86c37, 2ec5a7a8)
+- `asgard-source/workers/falkor-agent.js` — agentic chat path + multi-pin auth + system_prefix support (commits: 806036f0, several more)
+- `asgard-source/workers/falkor-ui.js` — see commit f0292000 for the consolidated v9.43.0 with all UX fixes + project-context wiring
+- Vault: ASGARD_AI_CANONICAL_DEPLOY_ID + ASGARD_AI_CANONICAL_SIZE updated to match each new deploy
+- D1: project_events rows 52–63 logged across the session
+
+---
 ## 2026-05-14 — Asgard: cross-chat revert loop fully resolved (asgard-ai + falkor-ui rolled forward)
 
 ### What was actually wrong
